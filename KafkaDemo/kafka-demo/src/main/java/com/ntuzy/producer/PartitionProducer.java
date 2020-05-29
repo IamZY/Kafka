@@ -1,21 +1,16 @@
 package com.ntuzy.producer;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import com.ntuzy.producer.partitioner.MyPartitioner;
+import org.apache.kafka.clients.producer.*;
 
 import java.util.Properties;
 
 /**
  * @Author IamZY
- * @create 2020/5/28 16:49
+ * @create 2020/5/29 16:31
  */
-public class MyProducer {
-
-
+public class PartitionProducer {
     public static void main(String[] args) {
-
         // 创建kafka生产者的配置信息
         Properties properties = new Properties();
 
@@ -35,11 +30,11 @@ public class MyProducer {
         // 等待时间
         properties.put("linger.ms", 1);
 
+        properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, "com.ntuzy.producer.partitioner.MyPartitioner");
+
 
         //RecordAccumulator 缓冲区大小
         properties.put("buffer.memory", 33554432);
-
-
 
         // key value的序列化类
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -50,9 +45,14 @@ public class MyProducer {
 
         // 发送数据
         for (int i = 0; i < 10; i++) {
-            producer.send(new ProducerRecord<String, String>("first", "ntu","ntuzy--" + i));
+            producer.send(new ProducerRecord<String, String>("first", "ntuzy--" + i), new Callback() {
+                public void onCompletion(RecordMetadata metadata, Exception exception) {
+                    if (exception == null) {
+                        System.out.println(metadata.partition());
+                    }
+                }
+            });
         }
         producer.close();
-
     }
 }
